@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Control de Proceso Fruta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';document.head.appendChild(s);"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';document.head.appendChild(s);"></script>
+<style>
+:root{
+  --ink:#20291d;
+  --paper:#f8f3e6;
+  --paper-2:#f1ead7;
+  --leaf:#3f6b3b;
+  --leaf-dark:#233f21;
+  --banana:#e8ab1f;
+  --brown:#a9714b;
+  --line:#d9cbab;
+  --red:#a83a2e;
+  --white:#fffdf8;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;-webkit-tap-highlight-color:transparent;}
+body::before{
+  content:"";
+  position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image: radial-gradient(circle, rgba(63,107,59,0.08) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+h1,h2,h3{font-family:'Fraunces',serif;margin:0;}
+.app{max-width:520px;margin:0 auto;min-height:100vh;background:transparent;position:relative;z-index:1;padding-bottom:96px;}
+
+header.top{
+  background:var(--leaf-dark);
+  color:var(--white);
+  padding:16px 18px 14px;
+  position:sticky;top:0;z-index:20;
+  border-bottom:4px solid var(--banana);
+}
+header.top .title{display:flex;align-items:baseline;gap:8px;}
+header.top h1{font-size:19px;font-weight:600;letter-spacing:.2px;}
+header.top .sub{font-size:11.5px;color:#cfe0c9;font-family:'IBM Plex Mono',monospace;margin-top:2px;}
+
+nav.tabs{
+  display:flex;
+  background:var(--leaf-dark);
+  position:sticky;top:56px;z-index:19;
+  border-bottom:1px solid rgba(255,255,255,0.12);
+}
+nav.tabs button{
+  flex:1;background:transparent;border:none;color:#bcd0b6;
+  font-family:'Inter',sans-serif;font-weight:600;font-size:12.5px;
+  padding:10px 4px;cursor:pointer;position:relative;
+}
+nav.tabs button.active{color:var(--white);}
+nav.tabs button.active::after{
+  content:"";position:absolute;left:14%;right:14%;bottom:0;height:3px;background:var(--banana);border-radius:2px 2px 0 0;
+}
+
+.panel{display:none;padding:16px 14px 8px;}
+.panel.active{display:block;}
+
+.card{
+  background:var(--white);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:14px 14px 16px;
+  margin-bottom:14px;
+  box-shadow:0 1px 0 rgba(0,0,0,0.03);
+  position:relative;
+}
+.card::before{
+  content:"";position:absolute;left:16px;top:-1px;width:26px;height:5px;background:var(--banana);border-radius:0 0 3px 3px;
+}
+.card h3{font-size:14.5px;color:var(--leaf-dark);margin-bottom:10px;padding-top:4px;display:flex;align-items:center;justify-content:space-between;}
+.card h3 .badge{font-family:'IBM Plex Mono',monospace;font-size:10.5px;background:var(--paper-2);color:var(--brown);padding:2px 7px;border-radius:20px;font-weight:600;}
+.card .hint{font-size:11px;color:#8a8267;margin-top:-4px;margin-bottom:10px;}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;}
+.field{margin-bottom:9px;}
+.field label{display:block;font-size:11px;font-weight:600;color:#6b6350;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+.field input, .field select, .field textarea{
+  width:100%;border:1px solid var(--line);background:var(--paper-2);
+  border-radius:7px;padding:9px 10px;font-size:14px;font-family:'IBM Plex Mono',monospace;color:var(--ink);
+}
+.field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--leaf);outline-offset:-1px;background:var(--white);}
+.field textarea{font-family:'Inter',sans-serif;min-height:56px;resize:vertical;}
+
+/* fixed hour table */
+.hourtable{margin-bottom:4px;}
+.hourhead{display:grid;grid-template-columns:60px 1fr 1fr 1fr;gap:6px;font-size:9.5px;color:#8a8267;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;font-weight:700;}
+.hourrow{display:grid;grid-template-columns:60px 1fr 1fr 1fr;gap:6px;align-items:center;margin-bottom:6px;}
+.hourrow .hlabel{font-weight:700;font-size:12.5px;font-family:'IBM Plex Mono',monospace;background:var(--paper-2);border-radius:6px;padding:7px 4px;text-align:center;}
+.hourrow input{border:1px solid var(--line);background:var(--paper-2);border-radius:6px;padding:7px 6px;font-size:12.5px;font-family:'IBM Plex Mono',monospace;width:100%;}
+.hourrow .diff{font-weight:700;text-align:center;border-radius:6px;padding:7px 4px;font-size:12.5px;font-family:'IBM Plex Mono',monospace;background:var(--paper-2);}
+.hourrow .diff.neg{color:var(--red);}
+.hourrow .diff.pos{color:var(--leaf);}
+
+.type-toggle{display:flex;gap:8px;margin-bottom:14px;}
+.type-toggle button{
+  flex:1;padding:10px;border-radius:8px;border:1.5px solid var(--leaf);
+  background:var(--white);color:var(--leaf-dark);font-weight:700;font-size:13px;cursor:pointer;
+}
+.type-toggle button.sel{background:var(--leaf);color:#fff;}
+
+.matgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;}
+.matgrid .mfield{margin-bottom:2px;}
+.matgrid .mfield label{display:block;font-size:10.5px;font-weight:600;color:#6b6350;margin-bottom:3px;}
+.matgrid .mfield input{width:100%;border:1px solid var(--line);background:var(--paper-2);border-radius:6px;padding:7px 8px;font-size:13px;font-family:'IBM Plex Mono',monospace;}
+
+.edadrow{display:grid;grid-template-columns:60px 1fr 1fr 1fr 1fr;gap:6px;align-items:center;margin-bottom:6px;}
+.edadrow .elabel{font-weight:700;font-size:11.5px;background:var(--paper-2);border-radius:6px;padding:7px 2px;text-align:center;}
+.edadrow input{border:1px solid var(--line);background:var(--paper-2);border-radius:6px;padding:7px 4px;font-size:12px;font-family:'IBM Plex Mono',monospace;width:100%;}
+.edadhead{display:grid;grid-template-columns:60px 1fr 1fr 1fr 1fr;gap:6px;font-size:9px;color:#8a8267;text-transform:uppercase;font-weight:700;margin-bottom:4px;}
+
+.rowline{display:grid;grid-template-columns:1fr 2fr 30px;gap:6px;align-items:center;margin-bottom:6px;}
+.rowline input{border:1px solid var(--line);background:var(--paper-2);border-radius:6px;padding:7px 6px;font-size:12.5px;font-family:'IBM Plex Mono',monospace;width:100%;}
+.rowline .del{background:none;border:none;color:#b98;font-size:16px;cursor:pointer;padding:0;}
+
+.cajaextrarow{display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 26px;gap:6px;align-items:center;margin-bottom:6px;}
+.cajaextrarow input{border:1px solid var(--line);background:var(--paper-2);border-radius:6px;padding:7px 6px;font-size:12px;font-family:'IBM Plex Mono',monospace;width:100%;}
+.cajaextrarow .del{background:none;border:none;color:#b98;font-size:16px;cursor:pointer;padding:0;}
+.cajaextrahead{display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 26px;gap:6px;font-size:9px;color:#8a8267;text-transform:uppercase;font-weight:700;margin-bottom:4px;}
+
+.extrahourrow{display:grid;grid-template-columns:64px 1fr 1fr 1fr 26px;gap:6px;align-items:center;margin-bottom:6px;}
+.extrahourrow input{border:1px solid var(--line);background:var(--paper-2);border-radius:6px;padding:7px 6px;font-size:12px;font-family:'IBM Plex Mono',monospace;width:100%;}
+.extrahourrow .diff{font-weight:700;text-align:center;border-radius:6px;padding:7px 2px;font-size:12px;font-family:'IBM Plex Mono',monospace;background:var(--paper-2);}
+.extrahourrow .diff.neg{color:var(--red);}
+.extrahourrow .diff.pos{color:var(--leaf);}
+.extrahourrow .del{background:none;border:none;color:#b98;font-size:16px;cursor:pointer;padding:0;}
+.addrow{width:100%;margin-top:4px;padding:8px;border:1.5px dashed var(--leaf);background:transparent;color:var(--leaf-dark);border-radius:7px;font-weight:600;font-size:12.5px;cursor:pointer;}
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+
+.actionbar{
+  position:fixed;bottom:0;left:0;right:0;z-index:30;
+  background:var(--white);border-top:2px solid var(--line);
+  max-width:520px;margin:0 auto;
+  display:flex;gap:6px;padding:9px 10px calc(9px + env(safe-area-inset-bottom));
+}
+.actionbar button{
+  flex:1;border:none;border-radius:8px;padding:11px 4px;font-weight:700;font-size:12px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:2px;font-family:'Inter',sans-serif;
+}
+.btn-save{background:var(--leaf);color:#fff;}
+.btn-wa{background:#25D366;color:#06340f;}
+.btn-new{background:var(--paper-2);color:var(--red);border:1px solid var(--line) !important;}
+.actionbar button:active{transform:scale(0.96);}
+
+#stamp{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.6) rotate(-8deg);
+  border:4px solid var(--red);color:var(--red);font-family:'Fraunces',serif;font-weight:700;
+  font-size:26px;padding:10px 22px;border-radius:8px;background:rgba(255,253,248,0.96);
+  opacity:0;pointer-events:none;z-index:100;letter-spacing:1px;text-transform:uppercase;
+  transition:transform .18s ease, opacity .18s ease;
+}
+#stamp.show{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-8deg);}
+
+.histitem{background:var(--white);border:1px solid var(--line);border-radius:9px;padding:11px 12px;margin-bottom:9px;}
+.histitem .hh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.histitem .hh b{font-size:13.5px;}
+.histitem .hh span{font-size:10.5px;color:var(--brown);font-family:'IBM Plex Mono',monospace;background:var(--paper-2);padding:2px 7px;border-radius:20px;}
+.histitem .meta{font-size:11.5px;color:#7a7360;margin-bottom:8px;}
+.histitem .hbtns{display:flex;gap:6px;}
+.histitem .hbtns button{flex:1;padding:7px;border-radius:6px;border:none;font-size:11.5px;font-weight:600;cursor:pointer;}
+.hb-load{background:var(--paper-2);color:var(--ink);}
+.hb-wa{background:#25D366;color:#06340f;}
+.hb-del{background:#f6dfda;color:var(--red);}
+.empty{text-align:center;color:#8a8267;font-size:13px;padding:30px 10px;}
+
+.section-divider{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--brown);font-weight:700;margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--line);}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(20,20,15,0.72);z-index:200;display:none;align-items:center;justify-content:center;padding:16px;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:var(--white);border-radius:12px;max-width:480px;width:100%;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);}
+.modal-head b{font-family:'Fraunces',serif;font-size:15px;}
+.modal-head button{background:none;border:none;font-size:20px;cursor:pointer;color:#8a8267;}
+.modal-body{overflow:auto;padding:12px;background:#efe8d5;flex:1;}
+.modal-actions{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--line);}
+.modal-actions button{flex:1;padding:11px;border-radius:8px;border:none;font-weight:700;font-size:13px;cursor:pointer;}
+.ma-share{background:#25D366;color:#06340f;}
+.ma-dl{background:var(--paper-2);color:var(--ink);border:1px solid var(--line) !important;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="title"><h1>🍌 Control de Fruta</h1></div>
+    <div class="sub">Las Margaritas · v13 · funciona sin internet</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="proceso">Racimo/Caja</button>
+    <button class="tab-btn" data-tab="corte">Corte Diario</button>
+    <button class="tab-btn" data-tab="historial">Historial</button>
+  </nav>
+  <!-- ===================== PANEL: PROCESO (Racimo / Caja) ===================== -->
+  <div class="panel active" id="panel-proceso">
+    <div class="type-toggle">
+      <button id="btnRacimo" class="sel">Racimo</button>
+      <button id="btnCaja">Caja</button>
+    </div>
+
+    <div class="card">
+      <h3>Datos generales</h3>
+      <div class="grid2">
+        <div class="field"><label>Finca</label><input id="p_finca"></div>
+        <div class="field"><label>Cajas</label><input id="p_cajas" inputmode="numeric"></div>
+        <div class="field"><label>Ratio estimado</label><input id="p_ratio" inputmode="decimal"></div>
+        <div class="field"><label>Fecha</label><input id="p_fecha" type="date"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>6 a 7 · 7 a 8 · 8 a 9 · 9 a 10</h3>
+      <div class="hourtable">
+        <div class="hourhead"><span>Hora</span><span>Estimado</span><span>Recibido</span><span>Diferencia</span></div>
+        <div id="p_block1"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Primer avance</h3>
+      <div class="grid3">
+        <div class="field"><label>Ratio</label><input id="p_pa_ratio"></div>
+        <div class="field"><label>Merma %</label><input id="p_pa_merma"></div>
+        <div class="field"><label>Prom. peso</label><input id="p_pa_prompeso"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>10 a 11 · 11 a 12</h3>
+      <div class="hourtable">
+        <div class="hourhead"><span>Hora</span><span>Estimado</span><span>Recibido</span><span>Diferencia</span></div>
+        <div id="p_block2"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Informe medio día</h3>
+      <div class="grid3">
+        <div class="field"><label>Ratio</label><input id="p_md_ratio"></div>
+        <div class="field"><label>Merma %</label><input id="p_md_merma"></div>
+        <div class="field"><label>Prom. peso</label><input id="p_md_prompeso"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>1 a 2 · 2 a 3 · 3 a 4</h3>
+      <div class="hourtable">
+        <div class="hourhead"><span>Hora</span><span>Estimado</span><span>Recibido</span><span>Diferencia</span></div>
+        <div id="p_block3"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Información final</h3>
+      <div class="grid3">
+        <div class="field"><label>Ratio</label><input id="p_if_ratio"></div>
+        <div class="field"><label>Merma %</label><input id="p_if_merma"></div>
+        <div class="field"><label>Prom. peso</label><input id="p_if_prompeso"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Horas extra <span class="badge">opcional</span></h3>
+      <div class="hint">Para días con más movimiento, igual que en tu libreta (4 a 5, 5 a 6, etc.)</div>
+      <div id="p_extraHours"></div>
+      <button class="addrow" onclick="addExtraHour()">+ Agregar hora</button>
+    </div>
+
+    <div class="card">
+      <h3>Firma <span class="badge">opcional</span></h3>
+      <div class="hint">Sube una foto de la firma desde tu galería. Si no subes nada, queda un espacio en blanco en el Excel para firmar a mano.</div>
+      <input type="file" accept="image/*" id="p_firmaFile" class="visually-hidden" onchange="handleFirmaUpload(this,'proceso')">
+      <label for="p_firmaFile" class="addrow" style="display:block;text-align:center;">📷 Subir firma desde galería</label>
+      <div id="p_firmaPreview"></div>
+    </div>
+
+    <div class="card">
+      <h3>Cierre del día</h3>
+      <div class="grid2">
+        <div class="field"><label>Hora última caja</label><input id="p_horaUltima" type="time"></div>
+        <div class="field"><label>Elaboró</label><input id="p_elaboro"></div>
+      </div>
+    </div>
+  </div>
+  <!-- ===================== PANEL: CORTE DIARIO ===================== -->
+  <div class="panel" id="panel-corte">
+
+    <div class="card">
+      <h3>Encabezado</h3>
+      <div class="grid2">
+        <div class="field"><label>Finca</label><input id="c_finca"></div>
+        <div class="field"><label>Código</label><input id="c_codigo"></div>
+        <div class="field"><label>Fecha</label><input id="c_fecha" type="date"></div>
+        <div class="field"><label>Corte No.</label><input id="c_corteNo"></div>
+        <div class="field"><label>Semana</label><input id="c_semana"></div>
+        <div class="field"><label>Destino</label><input id="c_destino"></div>
+        <div class="field"><label>PDO</label><input id="c_pdo"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Detalles de corte</h3>
+      <div class="grid2">
+        <div class="field"><label>Área recorrida</label><input id="c_areaRecorrida"></div>
+        <div class="field"><label>% racimos recusados</label><input id="c_pctRecusados"></div>
+        <div class="field"><label>Ratio cortado</label><input id="c_ratioCortado"></div>
+        <div class="field"><label>Ratio procesado</label><input id="c_ratioProcesado"></div>
+        <div class="field"><label>Promedio peso (kg)</label><input id="c_promPeso"></div>
+        <div class="field"><label>Peso sin vástago (-11%) <span class="badge">auto</span></label><input id="c_promPesoAuto" disabled style="opacity:.75;"></div>
+        <div class="field"><label>Prom. calibración general</label><input id="c_promCalibGral"></div>
+        <div class="field"><label>Prom. No. de manos</label><input id="c_promManos"></div>
+        <div class="field"><label>Largo 2da mano (cms)</label><input id="c_largo2da"></div>
+        <div class="field"><label>Largo última mano (cms)</label><input id="c_largoUltima"></div>
+        <div class="field"><label>% merma cortada</label><input id="c_pctMermaCortada"></div>
+        <div class="field"><label>% merma procesada</label><input id="c_pctMerma"></div>
+        <div class="field"><label>Dedos por caja</label><input id="c_dedosCaja"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Cajas</h3>
+      <div class="grid3">
+        <div class="field"><label>Cajas recusadas</label><input id="c_cajasRecusadas"></div>
+        <div class="field"><label>Cajas embarcadas</label><input id="c_cajasEmbarcadas"></div>
+        <div class="field"><label>Cajas en plantas</label><input id="c_cajasPlantas"></div>
+      </div>
+      <div class="section-divider">Código de cajas</div>
+      <div class="hint">Cada vez que coloques una caja, agrégala aquí: código, cantidad al lado del código, y su conversión cuando aplique. Tu formato tiene espacio fijo para 6.</div>
+      <div class="cajaextrahead"><span>Nombre</span><span>Código</span><span>Cantidad</span><span>Conversión</span><span></span></div>
+      <div id="c_cajasExtraRows"></div>
+      <button class="addrow" onclick="addCajaExtra()">+ Agregar caja</button>
+    </div>
+
+    <div class="card">
+      <h3>Proceso</h3>
+      <div class="grid2">
+        <div class="field"><label>Llegó el personal</label><input id="c_hLlegoPersonal" type="time"></div>
+        <div class="field"><label>Llegó la fruta</label><input id="c_hLlegoFruta" type="time"></div>
+        <div class="field"><label>Terminó corte fruta</label><input id="c_hTerminoCorte" type="time"></div>
+        <div class="field"><label>Terminó proceso</label><input id="c_hTerminoProceso" type="time"></div>
+        <div class="field"><label>Hombres en campo</label><input id="c_hombresCampo"></div>
+        <div class="field"><label>Hombres en planta</label><input id="c_hombresPlanta"></div>
+        <div class="field"><label>Hombres empacando</label><input id="c_hombresEmpacando"></div>
+        <div class="field"><label>Primera caja empacada</label><input id="c_primeraCaja" type="time"></div>
+        <div class="field"><label>Última caja empacada</label><input id="c_ultimaCaja" type="time"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Material usado</h3>
+      <div class="hint">Deja en blanco lo que no aplique.</div>
+      <div class="matgrid" id="c_matGrid"></div>
+    </div>
+
+    <div class="card">
+      <h3>Racimos cortados por edad</h3>
+      <div class="edadhead"><span>Edad</span><span>Color</span><span>Calibre</span><span>Cantidad</span><span>Peso</span></div>
+      <div id="c_edadRows"></div>
+    </div>
+
+    <div class="card">
+      <h3>Horas perdidas · Falta de</h3>
+      <div class="grid2">
+        <div class="field"><label>Fruta</label><input id="c_faltaFruta"></div>
+        <div class="field"><label>Pegante</label><input id="c_faltaPegante"></div>
+        <div class="field"><label>Cartón</label><input id="c_faltaCarton"></div>
+        <div class="field"><label>Bomba agua</label><input id="c_faltaBomba"></div>
+        <div class="field"><label>Comida</label><input id="c_faltaComida"></div>
+        <div class="field"><label>Calidad</label><input id="c_faltaCalidad"></div>
+        <div class="field" style="grid-column:1/3;"><label>Otros</label><input id="c_faltaOtros"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Totales</h3>
+      <div class="grid3">
+        <div class="field"><label>Tot. cortados</label><input id="c_totCortados"></div>
+        <div class="field"><label>T. recusados</label><input id="c_totRecusados"></div>
+        <div class="field"><label>Total proc.</label><input id="c_totProc"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Relación de cajas</h3>
+      <div class="hint">Empacadora</div>
+      <div class="grid4">
+        <div class="field"><label>P. Camión</label><input id="c_emp_pCamion"></div>
+        <div class="field"><label># Conten.</label><input id="c_emp_contenedor"></div>
+        <div class="field"><label>Sello</label><input id="c_emp_sello"></div>
+        <div class="field"><label>Cajas</label><input id="c_emp_cajas"></div>
+      </div>
+      <div class="hint" style="margin-top:6px;">Cosecha</div>
+      <div class="grid4">
+        <div class="field"><label>P. Camión</label><input id="c_cos_pCamion"></div>
+        <div class="field"><label># Conten.</label><input id="c_cos_contenedor"></div>
+        <div class="field"><label>Sello</label><input id="c_cos_sello"></div>
+        <div class="field"><label>Cajas</label><input id="c_cos_cajas"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Observaciones · Racimos recusados</h3>
+      <div class="hint">Cantidad y motivo (daño animal, mancha de madurez, etc.)</div>
+      <div id="c_recusadosRows"></div>
+      <button class="addrow" onclick="addRecusadoRow()">+ Agregar motivo</button>
+    </div>
+
+    <div class="card">
+      <h3>Firmas <span class="badge">opcional</span></h3>
+      <div class="grid2">
+        <div class="field"><label>Administrador</label><input id="c_administrador"></div>
+        <div class="field"><label>Elaboró</label><input id="c_elaboro"></div>
+      </div>
+      <div class="hint">Sube una foto de cada firma desde tu galería. Si no subes nada, queda el espacio en blanco en el Excel para firmar a mano.</div>
+      <div class="grid2">
+        <div>
+          <input type="file" accept="image/*" id="c_firmaAdminFile" class="visually-hidden" onchange="handleFirmaUpload(this,'corteAdmin')">
+          <label for="c_firmaAdminFile" class="addrow" style="display:block;text-align:center;">📷 Firma administrador</label>
+          <div id="c_firmaAdminPreview"></div>
+        </div>
+        <div>
+          <input type="file" accept="image/*" id="c_firmaElaboroFile" class="visually-hidden" onchange="handleFirmaUpload(this,'corteElaboro')">
+          <label for="c_firmaElaboroFile" class="addrow" style="display:block;text-align:center;">📷 Firma elaboró</label>
+          <div id="c_firmaElaboroPreview"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== PANEL: HISTORIAL ===================== -->
+  <div class="panel" id="panel-historial">
+    <div class="section-divider">Informes guardados en este celular</div>
+    <div id="histList"></div>
+  </div>
+
+</div>
+
+<div class="actionbar" id="actionbar">
+  <button class="btn-save" onclick="handleSave()">💾<span>Guardar</span></button>
+  <button class="btn-wa" onclick="handleExport()">📊<span>Exportar</span></button>
+  <button class="btn-new" onclick="handleNew()">🗑️<span>Nuevo</span></button>
+</div>
+
+<div id="stamp">Guardado</div>
+
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="modal-box" style="max-width:340px;">
+    <div style="padding:22px 20px 6px;text-align:center;">
+      <div style="font-size:34px;">⚠️</div>
+      <div id="confirmMsg" style="font-size:14px;font-weight:600;margin-top:8px;">¿Confirmas?</div>
+    </div>
+    <div class="modal-actions">
+      <button class="ma-dl" id="confirmNo">Cancelar</button>
+      <button style="background:var(--red);color:#fff;" id="confirmYes">Sí, continuar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-head"><b id="modalTitle">Vista previa</b><button onclick="closeModal()">✕</button></div>
+    <div class="modal-body" id="modalBody"><div class="empty">Generando…</div></div>
+    <div class="modal-actions">
+      <button class="ma-dl" style="background:var(--leaf);color:#fff;" onclick="downloadModalFile()">⬇️ Descargar Excel</button>
+    </div>
+  </div>
+</div>
+<script>
+/* ============== TEMPLATE (Excel real de la finca, incrustado) ============== */
+const TEMPLATE_B64 = "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";
+
+/* ============== ALMACENAMIENTO LOCAL (funciona sin internet, en este celular) ============== */
+const storage = {
+  async set(key, value){
+    try{ localStorage.setItem(key, value); return {key, value}; }
+    catch(e){ console.error('storage.set', e); return null; }
+  },
+  async get(key){
+    const v = localStorage.getItem(key);
+    if(v===null) throw new Error('no existe: '+key);
+    return {key, value:v};
+  },
+  async delete(key){
+    localStorage.removeItem(key);
+    return {key, deleted:true};
+  },
+  async list(prefix){
+    const keys=[];
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(!prefix || (k && k.startsWith(prefix))) keys.push(k);
+    }
+    return {keys};
+  }
+};
+
+function uid(){ return Math.random().toString(36).slice(2,8); }
+const todayISO = new Date().toISOString().slice(0,10);
+
+/* Confirmación propia (no depende del confirm() nativo del navegador,
+   que algunos navegadores/celulares bloquean silenciosamente). */
+function customConfirm(message){
+  return new Promise(resolve=>{
+    document.getElementById('confirmMsg').textContent = message;
+    const overlay = document.getElementById('confirmOverlay');
+    overlay.classList.add('show');
+    const yesBtn = document.getElementById('confirmYes');
+    const noBtn = document.getElementById('confirmNo');
+    function cleanup(result){
+      overlay.classList.remove('show');
+      yesBtn.removeEventListener('click', onYes);
+      noBtn.removeEventListener('click', onNo);
+      resolve(result);
+    }
+    function onYes(){ cleanup(true); }
+    function onNo(){ cleanup(false); }
+    yesBtn.addEventListener('click', onYes);
+    noBtn.addEventListener('click', onNo);
+  });
+}
+
+/* ============== STATE ============== */
+function blankHour(){ return {est:'', rec:''}; }
+function blankCheckpoint(){ return {ratio:'', merma:'', promPeso:''}; }
+function blankProceso(tipo){
+  return {
+    tipo, finca:'Las Margaritas', cajas:'', ratio:'', fecha:todayISO,
+    h6a7:blankHour(), h7a8:blankHour(), h8a9:blankHour(), h9a10:blankHour(),
+    primerAvance: blankCheckpoint(),
+    h10a11:blankHour(), h11a12:blankHour(),
+    informeMedioDia: blankCheckpoint(),
+    h1a2:blankHour(), h2a3:blankHour(), h3a4:blankHour(),
+    informacionFinal: blankCheckpoint(),
+    extraHours: [],
+    horaUltima:'', elaboro:'', firmaImg:null
+  };
+}
+/* Racimo y Caja son formularios completamente separados: llenar uno no afecta al otro. */
+let procesoStore = { Racimo: blankProceso('Racimo'), Caja: blankProceso('Caja') };
+let procesoTipo = 'Racimo';
+function proc(){ return procesoStore[procesoTipo]; }
+
+const MATERIALES_DEFAULT = ['Gurvias','Limas','Medidas','Mertect','Alumbre','Bacterol','Sello Dole','Sello Promocional','Otro Sello','Cauchitos Kg.','Polytubo','Polypack','Banavac','Polyvacpack'];
+function defaultMatRows(){ return MATERIALES_DEFAULT.map(n=>({id:uid(), nombre:n, valor:''})); }
+function defaultEdadRows(){ return ['8','9','10','11','12','13'].map(s=>({id:uid(), semanas:s, color:'', calibrac:'', cantidad:'', peso:''})); }
+
+function blankCorte(){
+  return {
+    finca:'Las Margaritas', codigo:'', fecha:todayISO, corteNo:'', semana:'', destino:'', pdo:'',
+    areaRecorrida:'', pctRecusados:'', ratioCortado:'', ratioProcesado:'', promPeso:'', promCalibGral:'', promManos:'',
+    largo2da:'', largoUltima:'', pctMermaCortada:'', pctMerma:'', dedosCaja:'',
+    cajasRecusadas:'', cajasEmbarcadas:'', cajasPlantas:'',
+    hLlegoPersonal:'', hLlegoFruta:'', hTerminoCorte:'', hTerminoProceso:'', hombresCampo:'', hombresPlanta:'', hombresEmpacando:'',
+    primeraCaja:'', ultimaCaja:'',
+    matRows: defaultMatRows(),
+    edadRows: defaultEdadRows(),
+    faltaFruta:'', faltaPegante:'', faltaCarton:'', faltaBomba:'', faltaComida:'', faltaCalidad:'', faltaOtros:'',
+    totCortados:'', totRecusados:'', totProc:'',
+    empacadora:{pCamion:'',contenedor:'',sello:'',cajas:''},
+    cosecha:{pCamion:'',contenedor:'',sello:'',cajas:''},
+    recusadosMotivos: [],
+    cajasExtra: [],
+    administrador:'', elaboro:'', firmaAdminImg:null, firmaElaboroImg:null
+  };
+}
+let corte = blankCorte();
+
+let activeTab = 'proceso';
+
+/* ============== TABS ============== */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    activeTab = btn.dataset.tab;
+    document.getElementById('panel-'+activeTab).classList.add('active');
+    document.getElementById('actionbar').style.display = activeTab==='historial' ? 'none' : 'flex';
+    if(activeTab==='historial') renderHistory();
+  });
+});
+
+document.getElementById('btnRacimo').addEventListener('click', ()=>setTipo('Racimo'));
+document.getElementById('btnCaja').addEventListener('click', ()=>setTipo('Caja'));
+function setTipo(t){
+  procesoTipo = t;
+  document.getElementById('btnRacimo').classList.toggle('sel', t==='Racimo');
+  document.getElementById('btnCaja').classList.toggle('sel', t==='Caja');
+  renderProcesoForm();
+}
+
+/* Pinta en pantalla TODOS los campos del formulario Racimo/Caja actualmente activo.
+   Se llama al cambiar de tipo, al cargar del historial, o al vaciar el formulario. */
+function renderProcesoForm(){
+  const p = proc();
+  document.getElementById('p_finca').value = p.finca||'';
+  document.getElementById('p_cajas').value = p.cajas||'';
+  document.getElementById('p_ratio').value = p.ratio||'';
+  document.getElementById('p_fecha').value = p.fecha||'';
+  document.getElementById('p_horaUltima').value = p.horaUltima||'';
+  document.getElementById('p_elaboro').value = p.elaboro||'';
+  document.getElementById('p_pa_ratio').value = p.primerAvance.ratio||'';
+  document.getElementById('p_pa_merma').value = p.primerAvance.merma||'';
+  document.getElementById('p_pa_prompeso').value = p.primerAvance.promPeso||'';
+  document.getElementById('p_md_ratio').value = p.informeMedioDia.ratio||'';
+  document.getElementById('p_md_merma').value = p.informeMedioDia.merma||'';
+  document.getElementById('p_md_prompeso').value = p.informeMedioDia.promPeso||'';
+  document.getElementById('p_if_ratio').value = p.informacionFinal.ratio||'';
+  document.getElementById('p_if_merma').value = p.informacionFinal.merma||'';
+  document.getElementById('p_if_prompeso').value = p.informacionFinal.promPeso||'';
+  renderProcesoHourBlocks();
+  renderExtraHours();
+  renderFirmaPreview('proceso');
+}
+
+/* ============== BIND SIMPLE FIELDS ============== */
+function bind(id, obj, key){
+  const el = document.getElementById(id);
+  el.value = obj[key] || '';
+  el.addEventListener('input', ()=> obj[key] = el.value);
+}
+/* Para los campos de Racimo/Caja: como el objeto activo cambia según el tipo,
+   el valor se resuelve en cada tecleo con proc(), no se fija de una vez. */
+function bindProc(id, key){
+  const el = document.getElementById(id);
+  el.addEventListener('input', ()=> proc()[key] = el.value);
+}
+function bindProcSub(id, subKey, key){
+  const el = document.getElementById(id);
+  el.addEventListener('input', ()=> proc()[subKey][key] = el.value);
+}
+[['p_finca','finca'],['p_cajas','cajas'],['p_ratio','ratio'],['p_fecha','fecha'],['p_horaUltima','horaUltima'],['p_elaboro','elaboro']]
+  .forEach(([id,key])=> bindProc(id, key));
+[['p_pa_ratio','ratio'],['p_pa_merma','merma'],['p_pa_prompeso','promPeso']].forEach(([id,key])=> bindProcSub(id, 'primerAvance', key));
+[['p_md_ratio','ratio'],['p_md_merma','merma'],['p_md_prompeso','promPeso']].forEach(([id,key])=> bindProcSub(id, 'informeMedioDia', key));
+[['p_if_ratio','ratio'],['p_if_merma','merma'],['p_if_prompeso','promPeso']].forEach(([id,key])=> bindProcSub(id, 'informacionFinal', key));
+renderProcesoForm();
+
+const corteFieldMap = {
+  c_finca:'finca', c_codigo:'codigo', c_fecha:'fecha', c_corteNo:'corteNo', c_semana:'semana', c_destino:'destino', c_pdo:'pdo',
+  c_areaRecorrida:'areaRecorrida', c_pctRecusados:'pctRecusados', c_ratioCortado:'ratioCortado', c_ratioProcesado:'ratioProcesado',
+  c_promPeso:'promPeso', c_promCalibGral:'promCalibGral', c_promManos:'promManos', c_largo2da:'largo2da', c_largoUltima:'largoUltima',
+  c_pctMermaCortada:'pctMermaCortada', c_pctMerma:'pctMerma', c_dedosCaja:'dedosCaja',
+  c_cajasRecusadas:'cajasRecusadas', c_cajasEmbarcadas:'cajasEmbarcadas', c_cajasPlantas:'cajasPlantas',
+  c_hLlegoPersonal:'hLlegoPersonal', c_hLlegoFruta:'hLlegoFruta', c_hTerminoCorte:'hTerminoCorte', c_hTerminoProceso:'hTerminoProceso',
+  c_hombresCampo:'hombresCampo', c_hombresPlanta:'hombresPlanta', c_hombresEmpacando:'hombresEmpacando',
+  c_primeraCaja:'primeraCaja', c_ultimaCaja:'ultimaCaja',
+  c_faltaFruta:'faltaFruta', c_faltaPegante:'faltaPegante', c_faltaCarton:'faltaCarton', c_faltaBomba:'faltaBomba',
+  c_faltaComida:'faltaComida', c_faltaCalidad:'faltaCalidad', c_faltaOtros:'faltaOtros',
+  c_totCortados:'totCortados', c_totRecusados:'totRecusados', c_totProc:'totProc',
+  c_administrador:'administrador', c_elaboro:'elaboro'
+};
+Object.entries(corteFieldMap).forEach(([id,key])=> bind(id, corte, key));
+[['c_emp_pCamion','pCamion'],['c_emp_contenedor','contenedor'],['c_emp_sello','sello'],['c_emp_cajas','cajas']].forEach(([id,key])=> bind(id, corte.empacadora, key));
+[['c_cos_pCamion','pCamion'],['c_cos_contenedor','contenedor'],['c_cos_sello','sello'],['c_cos_cajas','cajas']].forEach(([id,key])=> bind(id, corte.cosecha, key));
+
+/* Peso sin vástago: se calcula solo (peso digitado - 11%) y se muestra de una vez en pantalla */
+function updPromPesoAuto(){
+  const n = Number(document.getElementById('c_promPeso').value);
+  const out = document.getElementById('c_promPesoAuto');
+  out.value = (!isNaN(n) && document.getElementById('c_promPeso').value!=='') ? (Math.round(n*0.89*100)/100) : '';
+}
+document.getElementById('c_promPeso').addEventListener('input', updPromPesoAuto);
+
+/* ============== FIRMA (foto desde galería) ============== */
+function handleFirmaUpload(inputEl, target){
+  const file = inputEl.files && inputEl.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const img = new Image();
+    img.onload = ()=>{
+      // Se reduce el tamaño para que el Excel no pese de más
+      const maxW = 500;
+      const scale = Math.min(1, maxW/img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width*scale);
+      canvas.height = Math.round(img.height*scale);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/png', 0.85);
+      if(target==='proceso'){ proc().firmaImg = dataUrl; renderFirmaPreview('proceso'); }
+      else if(target==='corteAdmin'){ corte.firmaAdminImg = dataUrl; renderFirmaPreview('corteAdmin'); }
+      else if(target==='corteElaboro'){ corte.firmaElaboroImg = dataUrl; renderFirmaPreview('corteElaboro'); }
+      inputEl.value = '';
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+function quitarFirma(target){
+  if(target==='proceso'){ proc().firmaImg = null; }
+  else if(target==='corteAdmin'){ corte.firmaAdminImg = null; }
+  else if(target==='corteElaboro'){ corte.firmaElaboroImg = null; }
+  renderFirmaPreview(target);
+}
+function renderFirmaPreview(target){
+  const map = {
+    proceso: ['p_firmaPreview', ()=> proc().firmaImg],
+    corteAdmin: ['c_firmaAdminPreview', ()=> corte.firmaAdminImg],
+    corteElaboro: ['c_firmaElaboroPreview', ()=> corte.firmaElaboroImg]
+  };
+  const [elId, getImg] = map[target];
+  const el = document.getElementById(elId);
+  const img = getImg();
+  if(!el) return;
+  el.innerHTML = img
+    ? `<div style="margin-top:8px;display:flex;align-items:center;gap:10px;background:var(--paper-2);border-radius:8px;padding:8px;">
+         <img src="${img}" style="height:44px;border-radius:4px;background:#fff;">
+         <button onclick="quitarFirma('${target}')" style="margin-left:auto;background:none;border:none;color:var(--red);font-weight:600;font-size:12px;cursor:pointer;">Quitar</button>
+       </div>`
+    : '';
+}
+
+/* ============== HOUR BLOCKS RENDER ============== */
+function renderHourBlock(containerId, entries){
+  const wrap = document.getElementById(containerId);
+  const p = proc();
+  wrap.innerHTML = entries.map(([key,label])=>{
+    const h = p[key];
+    const est = parseFloat(h.est), rec = parseFloat(h.rec);
+    const hasDiff = h.est!=='' && h.rec!=='' && !isNaN(est) && !isNaN(rec);
+    const diff = hasDiff ? (rec-est) : '';
+    const cls = diff===''? '' : (diff<0?'neg':'pos');
+    return `<div class="hourrow">
+      <div class="hlabel">${label}</div>
+      <input value="${h.est}" inputmode="numeric" placeholder="Est." oninput="updHour('${key}','est',this.value)">
+      <input value="${h.rec}" inputmode="numeric" placeholder="Rec." oninput="updHour('${key}','rec',this.value)">
+      <div class="diff ${cls}">${diff===''?'—':diff}</div>
+    </div>`;
+  }).join('');
+}
+function updHour(key, field, val){
+  proc()[key][field] = val;
+  renderProcesoHourBlocks();
+}
+function renderProcesoHourBlocks(){
+  renderHourBlock('p_block1', [['h6a7','6 a 7'],['h7a8','7 a 8'],['h8a9','8 a 9'],['h9a10','9 a 10']]);
+  renderHourBlock('p_block2', [['h10a11','10 a 11'],['h11a12','11 a 12']]);
+  renderHourBlock('p_block3', [['h1a2','1 a 2'],['h2a3','2 a 3'],['h3a4','3 a 4']]);
+}
+
+/* ============== HORAS EXTRA (dinámicas, más allá del formato fijo) ============== */
+function addExtraHour(){
+  proc().extraHours.push({id:uid(), hora:'', est:'', rec:''});
+  renderExtraHours();
+}
+function renderExtraHours(){
+  const wrap = document.getElementById('p_extraHours');
+  wrap.innerHTML = proc().extraHours.map(h=>{
+    const est=parseFloat(h.est), rec=parseFloat(h.rec);
+    const hasDiff = h.est!=='' && h.rec!=='' && !isNaN(est) && !isNaN(rec);
+    const diff = hasDiff ? (rec-est) : '';
+    const cls = diff===''? '' : (diff<0?'neg':'pos');
+    return `<div class="extrahourrow">
+      <input value="${h.hora}" placeholder="4 a 5" oninput="updExtraHour('${h.id}','hora',this.value)">
+      <input value="${h.est}" inputmode="numeric" placeholder="Est." oninput="updExtraHour('${h.id}','est',this.value)">
+      <input value="${h.rec}" inputmode="numeric" placeholder="Rec." oninput="updExtraHour('${h.id}','rec',this.value)">
+      <div class="diff ${cls}">${diff===''?'—':diff}</div>
+      <button class="del" onclick="delExtraHour('${h.id}')">✕</button>
+    </div>`;
+  }).join('') || '<div class="empty" style="padding:14px 0;">Sin horas extra agregadas.</div>';
+}
+function updExtraHour(id, key, val){
+  const r = proc().extraHours.find(x=>x.id===id);
+  if(r){ r[key]=val; renderExtraHours(); }
+}
+function delExtraHour(id){
+  proc().extraHours = proc().extraHours.filter(x=>x.id!==id);
+  renderExtraHours();
+}
+
+/* ============== MATERIALES GRID ============== */
+function renderMatGrid(){
+  document.getElementById('c_matGrid').innerHTML = corte.matRows.map(r=>`
+    <div class="mfield"><label>${r.nombre}</label>
+      <input value="${r.valor}" oninput="updMat('${r.id}',this.value)">
+    </div>`).join('');
+}
+function updMat(id, val){ const r = corte.matRows.find(x=>x.id===id); if(r) r.valor = val; }
+renderMatGrid();
+
+/* ============== EDAD ROWS ============== */
+function renderEdadRows(){
+  document.getElementById('c_edadRows').innerHTML = corte.edadRows.map(r=>`
+    <div class="edadrow">
+      <div class="elabel">${r.semanas} sem</div>
+      <input value="${r.color}" placeholder="Color" oninput="updEdad('${r.id}','color',this.value)">
+      <input value="${r.calibrac}" placeholder="Calibre" oninput="updEdad('${r.id}','calibrac',this.value)">
+      <input value="${r.cantidad}" placeholder="Cant." inputmode="numeric" oninput="updEdad('${r.id}','cantidad',this.value)">
+      <input value="${r.peso}" placeholder="Peso" oninput="updEdad('${r.id}','peso',this.value)">
+    </div>`).join('');
+}
+function updEdad(id, key, val){ const r = corte.edadRows.find(x=>x.id===id); if(r) r[key]=val; }
+renderEdadRows();
+
+/* ============== RACIMOS RECUSADOS / MOTIVO ============== */
+function addRecusadoRow(){
+  if(corte.recusadosMotivos.length>=8){ alert('Máximo 8 motivos (igual que el espacio del formato).'); return; }
+  corte.recusadosMotivos.push({id:uid(), cantidad:'', motivo:''});
+  renderRecusadosRows();
+}
+function renderRecusadosRows(){
+  document.getElementById('c_recusadosRows').innerHTML = corte.recusadosMotivos.map(r=>`
+    <div class="rowline">
+      <input value="${r.cantidad}" placeholder="Cant." inputmode="numeric" oninput="updRecusado('${r.id}','cantidad',this.value)">
+      <input value="${r.motivo}" placeholder="Motivo (ej. daño animal)" oninput="updRecusado('${r.id}','motivo',this.value)">
+      <button class="del" onclick="delRecusado('${r.id}')">✕</button>
+    </div>`).join('') || '<div class="empty">Sin motivos registrados.</div>';
+}
+function updRecusado(id,key,val){ const r = corte.recusadosMotivos.find(x=>x.id===id); if(r) r[key]=val; }
+function delRecusado(id){ corte.recusadosMotivos = corte.recusadosMotivos.filter(r=>r.id!==id); renderRecusadosRows(); }
+renderRecusadosRows();
+
+/* ============== CAJAS EXTRA (más allá de Recusadas/Embarcadas/En plantas) ============== */
+function addCajaExtra(){
+  if(corte.cajasExtra.length===6){ alert('Tu formato tiene espacio fijo para 6 códigos de caja. Los que agregues de más se exportarán en una sección aparte, al final del Excel.'); }
+  corte.cajasExtra.push({id:uid(), nombre:'', codigo:'', cantidad:'', conv:''});
+  renderCajasExtra();
+}
+function renderCajasExtra(){
+  document.getElementById('c_cajasExtraRows').innerHTML = corte.cajasExtra.map(r=>`
+    <div class="cajaextrarow">
+      <input value="${r.nombre}" placeholder="Ej. Cajas dañadas" oninput="updCajaExtra('${r.id}','nombre',this.value)">
+      <input value="${r.codigo}" placeholder="Código" oninput="updCajaExtra('${r.id}','codigo',this.value)">
+      <input value="${r.cantidad}" placeholder="Cant." inputmode="numeric" oninput="updCajaExtra('${r.id}','cantidad',this.value)">
+      <input value="${r.conv}" placeholder="Conversión" oninput="updCajaExtra('${r.id}','conv',this.value)">
+      <button class="del" onclick="delCajaExtra('${r.id}')">✕</button>
+    </div>`).join('') || '<div class="empty" style="padding:10px 0;">Sin cajas extra agregadas.</div>';
+}
+function updCajaExtra(id,key,val){ const r = corte.cajasExtra.find(x=>x.id===id); if(r) r[key]=val; }
+function delCajaExtra(id){ corte.cajasExtra = corte.cajasExtra.filter(r=>r.id!==id); renderCajasExtra(); }
+renderCajasExtra();
+renderFirmaPreview('corteAdmin');
+renderFirmaPreview('corteElaboro');
+
+/* ============== GUARDAR / NUEVO ============== */
+function currentData(){
+  return activeTab==='corte' ? {type:'corte', data: JSON.parse(JSON.stringify(corte))}
+       : {type:'proceso_'+procesoTipo, data: JSON.parse(JSON.stringify(proc()))};
+}
+function currentLabel(){
+  if(activeTab==='corte') return `Corte Diario ${corte.fecha||''}`;
+  return `${procesoTipo} ${proc().fecha||''}`;
+}
+
+async function handleSave(){
+  try{
+    const {type, data} = currentData();
+    const id = 'rep_'+Date.now()+'_'+uid();
+    const key = `report:${type}:${id}`;
+    const payload = { ...data, _label: currentLabel(), _savedAt: new Date().toISOString() };
+    const res = await storage.set(key, JSON.stringify(payload));
+    if(!res){ alert('No se pudo guardar en este celular. Intenta de nuevo.'); return; }
+    showStamp('Guardado');
+  }catch(e){
+    console.error(e);
+    alert('Error al guardar: '+e.message);
+  }
+}
+
+async function handleNew(){
+  const ok = await customConfirm('¿Borrar los datos del formulario actual? Esto no borra el historial guardado.');
+  if(!ok) return;
+  if(activeTab==='corte'){
+    corte = blankCorte();
+    Object.entries(corteFieldMap).forEach(([id,key])=> document.getElementById(id).value = corte[key]);
+    [['c_emp_pCamion','pCamion'],['c_emp_contenedor','contenedor'],['c_emp_sello','sello'],['c_emp_cajas','cajas']].forEach(([id,key])=> document.getElementById(id).value = corte.empacadora[key]);
+    [['c_cos_pCamion','pCamion'],['c_cos_contenedor','contenedor'],['c_cos_sello','sello'],['c_cos_cajas','cajas']].forEach(([id,key])=> document.getElementById(id).value = corte.cosecha[key]);
+    renderMatGrid(); renderEdadRows(); renderRecusadosRows(); renderCajasExtra();
+    renderFirmaPreview('corteAdmin'); renderFirmaPreview('corteElaboro');
+    updPromPesoAuto();
+  } else {
+    procesoStore[procesoTipo] = blankProceso(procesoTipo);
+    renderProcesoForm();
+  }
+  showStamp('Nuevo');
+}
+
+function showStamp(word){
+  const s = document.getElementById('stamp');
+  s.textContent = word;
+  s.classList.add('show');
+  setTimeout(()=> s.classList.remove('show'), 900);
+}
+
+/* ============== HISTORIAL ============== */
+async function renderHistory(){
+  const wrap = document.getElementById('histList');
+  wrap.innerHTML = '<div class="empty">Cargando…</div>';
+  try{
+    const res = await storage.list('report:');
+    const keys = (res && res.keys) || [];
+    if(keys.length===0){ wrap.innerHTML = '<div class="empty">Todavía no has guardado ningún informe.<br>Llena un formato y toca "Guardar".</div>'; return; }
+    const items = [];
+    for(const k of keys){
+      try{
+        const r = await storage.get(k);
+        if(r) items.push({key:k, data: JSON.parse(r.value)});
+      }catch(e){}
+    }
+    items.sort((a,b)=> (b.data._savedAt||'').localeCompare(a.data._savedAt||''));
+    wrap.innerHTML = items.map(it=>{
+      const d = it.data;
+      const typeLabel = it.key.includes('report:corte') ? 'Corte Diario' : (d.tipo || 'Proceso');
+      const when = d._savedAt ? new Date(d._savedAt).toLocaleString('es-GT',{dateStyle:'short',timeStyle:'short'}) : '';
+      return `<div class="histitem">
+        <div class="hh"><b>${d._label||typeLabel}</b><span>${typeLabel}</span></div>
+        <div class="meta">Guardado: ${when}</div>
+        <div class="hbtns">
+          <button class="hb-load" onclick="loadHist('${it.key}')">Cargar</button>
+          <button class="hb-wa" onclick="exportHist('${it.key}')">📊 Excel</button>
+          <button class="hb-del" onclick="delHist('${it.key}')">Eliminar</button>
+        </div>
+      </div>`;
+    }).join('');
+    window._histCache = items;
+  }catch(e){
+    wrap.innerHTML = '<div class="empty">No se pudo cargar el historial: '+e.message+'</div>';
+  }
+}
+function findHist(key){ return (window._histCache||[]).find(i=>i.key===key); }
+
+function loadHist(key){
+  const it = findHist(key); if(!it) return;
+  const d = it.data;
+  if(key.includes('report:corte')){
+    corte = Object.assign(blankCorte(), d);
+    if(!corte.matRows || !corte.matRows.length) corte.matRows = defaultMatRows();
+    if(!corte.edadRows || !corte.edadRows.length) corte.edadRows = defaultEdadRows();
+    if(!corte.recusadosMotivos) corte.recusadosMotivos = [];
+    if(!corte.cajasExtra) corte.cajasExtra = [];
+    if(!corte.empacadora) corte.empacadora = {pCamion:'',contenedor:'',sello:'',cajas:''};
+    if(!corte.cosecha) corte.cosecha = {pCamion:'',contenedor:'',sello:'',cajas:''};
+    Object.entries(corteFieldMap).forEach(([id,k])=> document.getElementById(id).value = corte[k]||'');
+    [['c_emp_pCamion','pCamion'],['c_emp_contenedor','contenedor'],['c_emp_sello','sello'],['c_emp_cajas','cajas']].forEach(([id,key])=> document.getElementById(id).value = corte.empacadora[key]||'');
+    [['c_cos_pCamion','pCamion'],['c_cos_contenedor','contenedor'],['c_cos_sello','sello'],['c_cos_cajas','cajas']].forEach(([id,key])=> document.getElementById(id).value = corte.cosecha[key]||'');
+    renderMatGrid(); renderEdadRows(); renderRecusadosRows(); renderCajasExtra();
+    renderFirmaPreview('corteAdmin'); renderFirmaPreview('corteElaboro');
+    updPromPesoAuto();
+    document.querySelector('.tab-btn[data-tab="corte"]').click();
+  } else {
+    const t = d.tipo || 'Racimo';
+    const merged = Object.assign(blankProceso(t), d);
+    if(!Array.isArray(merged.extraHours)) merged.extraHours = [];
+    procesoStore[t] = merged;
+    procesoTipo = t;
+    document.getElementById('btnRacimo').classList.toggle('sel', t==='Racimo');
+    document.getElementById('btnCaja').classList.toggle('sel', t==='Caja');
+    renderProcesoForm();
+    document.querySelector('.tab-btn[data-tab="proceso"]').click();
+  }
+  showStamp('Cargado');
+}
+
+async function delHist(key){
+  const ok = await customConfirm('¿Eliminar este informe guardado? No se puede deshacer.');
+  if(!ok) return;
+  try{
+    await storage.delete(key);
+    renderHistory();
+    showStamp('Eliminado');
+  }catch(e){ alert('No se pudo eliminar: '+e.message); }
+}
+
+/* ============== EXCEL: llenar el template real (tu archivo) ============== */
+function ensureXLSX(){
+  return true; // XLSX solo se usa (si está disponible) para pintar la vista previa; nunca bloquea la exportación
+}
+async function ensureJSZip(){
+  if(typeof JSZip === 'undefined'){
+    alert('No se pudo cargar el componente necesario para generar el Excel (revisa tu conexión a internet e intenta de nuevo).');
+    return false;
+  }
+  return true;
+}
+
+/* ============== GENERACIÓN DEL EXCEL: edición directa del XML interno ==============
+   En vez de reconstruir el archivo con el generador de Excel del navegador (que no
+   siempre logra escribir bordes/imágenes de forma confiable), se edita el .xlsx real
+   tal cual viene: solo se reemplaza el VALOR de cada celda dentro del XML, sin tocar
+   su estilo. Así el borde y el formato que ya trae la plantilla nunca se pierden. */
+
+function xmlEscape(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function colLetter(n){
+  let s=''; n=n+1;
+  while(n>0){ const rem=(n-1)%26; s=String.fromCharCode(65+rem)+s; n=Math.floor((n-1)/26); }
+  return s;
+}
+function smartVal(v){
+  if(v===undefined || v===null || v==='') return null;
+  const n = Number(v);
+  return (!isNaN(n) && String(v).trim()!=='') ? n : v;
+}
+
+/* Escribe (o reemplaza) el valor de una celda que YA EXISTE en el XML de la plantilla,
+   conservando su atributo de estilo "s" (que es justo donde vive el borde). */
+function setCellXml(xml, addr, value, formula){
+  if(formula==null && (value===undefined || value===null || value==='')) return xml;
+  const re = new RegExp('<c r="'+addr+'"([^>]*)>([\\s\\S]*?)</c>|<c r="'+addr+'"([^>]*)/>');
+  const m = re.exec(xml);
+  if(!m){ console.warn('No se encontró la celda', addr, 'en la plantilla; se omite ese dato.'); return xml; }
+  const selfClosing = m[3]!==undefined;
+  let attrs = (selfClosing ? m[3] : m[1]) || '';
+  attrs = attrs.replace(/\s*t="[^"]*"/,'');
+  let inner;
+  if(formula!=null){
+    inner = '<f>'+xmlEscape(formula)+'</f><v>'+xmlEscape(value)+'</v>';
+  } else if(typeof value === 'number'){
+    attrs += ' t="n"';
+    inner = '<v>'+xmlEscape(value)+'</v>';
+  } else {
+    attrs += ' t="inlineStr"';
+    inner = '<is><t xml:space="preserve">'+xmlEscape(String(value))+'</t></is>';
+  }
+  const newTag = '<c r="'+addr+'"'+attrs+'>'+inner+'</c>';
+  return xml.slice(0, m.index) + newTag + xml.slice(m.index + m[0].length);
+}
+function smartSetXml(xml, addr, rawValue){
+  const v = smartVal(rawValue);
+  if(v===null) return xml;
+  return setCellXml(xml, addr, v);
+}
+/* Escribe el valor DESPUÉS del texto de la etiqueta ya impresa (ej. "Ratio:" + "1.07") */
+function appendCellXml(xml, addr, label, rawValue){
+  if(rawValue===undefined || rawValue===null || rawValue==='') return xml;
+  return setCellXml(xml, addr, (label ? label+' ' : '') + rawValue);
+}
+/* Agrega celdas combinadas nuevas (para títulos que se agregan en filas que antes estaban en blanco) */
+function addMergeCells(xml, refs){
+  if(!refs || !refs.length) return xml;
+  const mc = /<mergeCells count="(\d+)">([\s\S]*?)<\/mergeCells>/.exec(xml);
+  const entries = refs.map(r=>'<mergeCell ref="'+r+'"/>').join('');
+  if(mc){
+    const newCount = parseInt(mc[1],10) + refs.length;
+    const replaced = '<mergeCells count="'+newCount+'">'+mc[2]+entries+'</mergeCells>';
+    return xml.slice(0, mc.index) + replaced + xml.slice(mc.index+mc[0].length);
+  }
+  return xml.replace('</sheetData>', '</sheetData><mergeCells count="'+refs.length+'">'+entries+'</mergeCells>');
+}
+
+/* El input de hora siempre guarda "HH:MM" en 24 horas (esto no depende del idioma del celular);
+   esta función la convierte a "H:MM AM/PM" para que se vea clara en el Excel. */
+function formatTime12(t){
+  if(!t) return t;
+  const m = /^(\d{1,2}):(\d{2})/.exec(t);
+  if(!m) return t;
+  let h = parseInt(m[1],10);
+  const min = m[2];
+  const ampm = h>=12 ? 'PM' : 'AM';
+  h = h % 12; if(h===0) h = 12;
+  return `${h}:${min} ${ampm}`;
+}
+
+/* ---- Racimo / Caja: un solo sheet, con Racimo en columnas A-D y Caja en columnas F-I ---- */
+function buildProcesoSheetXml(templateXml, data){
+  let xml = templateXml;
+  const isCaja = (data.tipo||'Racimo') === 'Caja';
+  const c0 = isCaja ? 5 : 0;
+  const cA = colLetter(c0), cB = colLetter(c0+1), cC = colLetter(c0+2), cD = colLetter(c0+3);
+
+  xml = appendCellXml(xml, cA+'2', 'FINCA:', data.finca);
+  xml = appendCellXml(xml, cA+'3', 'CAJAS:', data.cajas);
+  xml = appendCellXml(xml, cA+'4', 'RATIO ESTIMADO:', data.ratio);
+  xml = appendCellXml(xml, cA+'5', 'FECHA:', data.fecha);
+
+  function hourRow(rowNum, h){
+    if(!h) return;
+    xml = smartSetXml(xml, cB+rowNum, h.est);
+    xml = smartSetXml(xml, cC+rowNum, h.rec);
+    const estN = smartVal(h.est), recN = smartVal(h.rec);
+    if(typeof estN==='number' && typeof recN==='number'){
+      xml = setCellXml(xml, cD+rowNum, recN-estN, cC+rowNum+'-'+cB+rowNum);
+    }
+  }
+  hourRow(7, data.h6a7); hourRow(8, data.h7a8); hourRow(9, data.h8a9); hourRow(10, data.h9a10);
+
+  xml = appendCellXml(xml, cB+'11', 'Ratio:', data.primerAvance && data.primerAvance.ratio);
+  xml = appendCellXml(xml, cC+'11', 'Merma:', data.primerAvance && data.primerAvance.merma);
+  xml = appendCellXml(xml, cD+'11', 'Prom peso:', data.primerAvance && data.primerAvance.promPeso);
+
+  hourRow(12, data.h10a11); hourRow(13, data.h11a12);
+
+  xml = appendCellXml(xml, cB+'14', 'Ratio:', data.informeMedioDia && data.informeMedioDia.ratio);
+  xml = appendCellXml(xml, cC+'14', 'Merma:', data.informeMedioDia && data.informeMedioDia.merma);
+  xml = appendCellXml(xml, cD+'14', 'Prom peso:', data.informeMedioDia && data.informeMedioDia.promPeso);
+
+  hourRow(15, data.h1a2); hourRow(16, data.h2a3); hourRow(17, data.h3a4);
+
+  xml = appendCellXml(xml, cB+'18', 'Ratio:', data.informacionFinal && data.informacionFinal.ratio);
+  xml = appendCellXml(xml, cC+'18', 'Merma:', data.informacionFinal && data.informacionFinal.merma);
+  xml = appendCellXml(xml, cD+'18', 'Prom peso:', data.informacionFinal && data.informacionFinal.promPeso);
+
+  let horaTxt = formatTime12(data.horaUltima) || '';
+  if(data.elaboro) horaTxt = (horaTxt ? horaTxt+'  ' : '') + '— Elaboró: '+data.elaboro;
+  xml = appendCellXml(xml, cA+'19', 'Hora elaboracion ultima caja:', horaTxt);
+
+  // Horas extra + firma: usan el margen que ya viene con borde (filas 20 a 25)
+  const merges = [];
+  let nextRow = 20;
+  const extra = (data.extraHours||[]).filter(h=> h.hora || h.est!=='' || h.rec!=='');
+  if(extra.length && nextRow<=25){
+    xml = setCellXml(xml, cA+nextRow, 'HORAS EXTRA');
+    merges.push(cA+nextRow+':'+cD+nextRow);
+    nextRow++;
+    extra.forEach(h=>{
+      if(nextRow>25) return;
+      xml = setCellXml(xml, cA+nextRow, h.hora||'');
+      xml = smartSetXml(xml, cB+nextRow, h.est);
+      xml = smartSetXml(xml, cC+nextRow, h.rec);
+      const estN=smartVal(h.est), recN=smartVal(h.rec);
+      if(typeof estN==='number' && typeof recN==='number'){
+        xml = setCellXml(xml, cD+nextRow, recN-estN, cC+nextRow+'-'+cB+nextRow);
+      }
+      nextRow++;
+    });
+  }
+  const images = [];
+  if(nextRow<=25){
+    xml = setCellXml(xml, cA+nextRow, 'FIRMA');
+    merges.push(cA+nextRow+':'+cD+nextRow);
+    if(data.firmaImg){
+      images.push({dataUrl:data.firmaImg, row:nextRow-1, col:c0, widthPx:170, heightPx:60});
+    }
+  }
+
+  xml = addMergeCells(xml, merges);
+  return {xml, images};
+}
+
+/* ---- Informe General de Corte Diario ---- */
+const MAT_ADDR = {
+  'GURVIAS':'J15','LIMAS':'J16','MEDIDAS':'J17','MERTECT':'J18','ALUMBRE':'J19','BACTEROL':'J20',
+  'SELLO DOLE':'J21','SELLO PROMOCIONAL':'J22','OTRO SELLO':'J23','CAUCHITOS KG.':'J24','CAUCHITOS KG':'J24',
+  'POLYTUBO':'J25','POLYPACK':'J26','BANAVAC':'J27','POLYVACPACK':'J28'
+};
+const EDAD_ROW = {'8':29,'9':31,'10':33,'11':35,'12':37,'13':39};
+
+function buildCorteSheetXml(templateXml, data){
+  let xml = templateXml;
+  const merges = [];
+
+  xml = appendCellXml(xml, 'A3', 'FINCA:', data.finca);
+  xml = smartSetXml(xml, 'E3', data.corteNo);
+  xml = appendCellXml(xml, 'F3', 'DESTINO:', data.destino);
+  xml = appendCellXml(xml, 'A4', 'CODIGO:', data.codigo);
+  xml = appendCellXml(xml, 'D4', 'FECHA:', data.fecha);
+  xml = appendCellXml(xml, 'F4', 'SEMANA:', data.semana);
+  xml = appendCellXml(xml, 'H4', 'PDO:', data.pdo);
+
+  [['F6',data.areaRecorrida],['F7',data.pctRecusados],['F8',data.ratioCortado],['F9',data.ratioProcesado],
+   ['F10',data.promPeso],['F11',data.promCalibGral],['F12',data.promManos],['F13',data.largo2da],
+   ['F14',data.largoUltima],['F15',data.pctMermaCortada],['F16',data.pctMerma],['F17',data.dedosCaja]
+  ].forEach(([a,v])=> xml = smartSetXml(xml, a, v));
+
+  // Promedio de peso sin vástago (-11%): se calcula solo y se coloca en USO TECBACO, al lado
+  const pesoN = smartVal(data.promPeso);
+  if(typeof pesoN === 'number'){
+    xml = setCellXml(xml, 'G10', Math.round(pesoN*0.89*100)/100, 'F10*0.89');
+  }
+
+  xml = smartSetXml(xml, 'F25', data.cajasRecusadas);
+  xml = smartSetXml(xml, 'F26', data.cajasEmbarcadas);
+  xml = smartSetXml(xml, 'F27', data.cajasPlantas);
+
+  [['J5',formatTime12(data.hLlegoPersonal)],['J6',formatTime12(data.hLlegoFruta)],
+   ['J7',formatTime12(data.hTerminoCorte)],['J8',formatTime12(data.hTerminoProceso)],
+   ['J9',data.hombresCampo],['J10',data.hombresPlanta],['J11',data.hombresEmpacando],
+   ['J12',formatTime12(data.primeraCaja)],['J13',formatTime12(data.ultimaCaja)]
+  ].forEach(([a,v])=> xml = smartSetXml(xml, a, v));
+
+  (data.matRows||[]).forEach(r=>{
+    const addr = MAT_ADDR[(r.nombre||'').trim().toUpperCase()];
+    if(addr) xml = smartSetXml(xml, addr, r.valor);
+  });
+
+  (data.edadRows||[]).forEach(r=>{
+    const row = EDAD_ROW[String(r.semanas)];
+    if(!row) return;
+    xml = smartSetXml(xml, 'C'+row, r.color);
+    xml = smartSetXml(xml, 'E'+row, r.calibrac);
+    xml = smartSetXml(xml, 'F'+row, r.cantidad);
+    xml = smartSetXml(xml, 'G'+row, r.peso);
+  });
+
+  [['J30',data.faltaFruta],['J31',data.faltaPegante],['J32',data.faltaCarton],['J33',data.faltaBomba],
+   ['J34',data.faltaComida],['J35',data.faltaCalidad],['J36',data.faltaOtros]
+  ].forEach(([a,v])=> xml = smartSetXml(xml, a, v));
+
+  xml = smartSetXml(xml, 'D41', data.totCortados);
+  xml = smartSetXml(xml, 'F41', data.totRecusados);
+  xml = smartSetXml(xml, 'I41', data.totProc);
+
+  const emp = data.empacadora||{}, cos = data.cosecha||{};
+  xml = smartSetXml(xml,'D46',emp.pCamion); xml = smartSetXml(xml,'E46',emp.contenedor);
+  xml = smartSetXml(xml,'F46',emp.sello);   xml = smartSetXml(xml,'G46',emp.cajas);
+  xml = smartSetXml(xml,'D49',cos.pCamion); xml = smartSetXml(xml,'E49',cos.contenedor);
+  xml = smartSetXml(xml,'F49',cos.sello);   xml = smartSetXml(xml,'G49',cos.cajas);
+
+  // Código de cajas: filas 19-24 (bajo "CAJAS:"), ya vienen con borde y con A:E combinado
+  const cajasExtra = (data.cajasExtra||[]).filter(c=> c.nombre || c.codigo || c.cantidad || c.conv);
+  const CAJAS_ROWS = [19,20,21,22,23,24];
+  cajasExtra.slice(0, CAJAS_ROWS.length).forEach((c,i)=>{
+    const row = CAJAS_ROWS[i];
+    const label = [c.nombre, c.codigo].filter(Boolean).join(' — ');
+    xml = setCellXml(xml, 'A'+row, label);
+    xml = smartSetXml(xml, 'F'+row, c.cantidad);
+    xml = smartSetXml(xml, 'G'+row, c.conv);
+  });
+
+  // Racimos recusados / motivo: filas 44-51
+  (data.recusadosMotivos||[]).slice(0,8).forEach((r,i)=>{
+    const row = 44+i;
+    xml = smartSetXml(xml, 'H'+row, r.cantidad);
+    xml = smartSetXml(xml, 'I'+row, r.motivo);
+  });
+
+  // Firmas: si subiste foto se inserta la imagen; si no, se escribe el nombre sobre la línea en blanco
+  const images = [];
+  if(data.firmaAdminImg){ images.push({dataUrl:data.firmaAdminImg, row:48, col:0, widthPx:150, heightPx:65}); }
+  else if(data.administrador){ xml = setCellXml(xml, 'A52', `ADMINISTRADOR: ${data.administrador}`); }
+  if(data.firmaElaboroImg){ images.push({dataUrl:data.firmaElaboroImg, row:48, col:8, widthPx:150, heightPx:65}); }
+  else if(data.elaboro){ xml = setCellXml(xml, 'I52', `ELABORO: ${data.elaboro}`); }
+
+  // Código de cajas que sobren de las 6 filas fijas -> filas 53-57 (margen extra, ya con borde)
+  const overflow = cajasExtra.slice(CAJAS_ROWS.length);
+  if(overflow.length){
+    let row = 53;
+    xml = setCellXml(xml, 'A'+row, 'CÓDIGO DE CAJAS (continuación)');
+    merges.push('A'+row+':D'+row);
+    row++;
+    overflow.forEach(c=>{
+      if(row>57) return;
+      const label = [c.nombre, c.codigo].filter(Boolean).join(' — ');
+      xml = setCellXml(xml, 'A'+row, label);
+      xml = smartSetXml(xml, 'C'+row, c.cantidad);
+      xml = smartSetXml(xml, 'D'+row, c.conv);
+      row++;
+    });
+  }
+
+  xml = addMergeCells(xml, merges);
+  return {xml, images};
+}
+
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+/* Incrusta las fotos de firma (si las hay) directamente en el paquete ZIP del Excel,
+   ancladas a la celda indicada. Si algo falla, el archivo se entrega igual, solo sin la imagen. */
+async function embedImagesInZip(zip, sheetPath, images){
+  try{
+    const sheetNumMatch = /sheet(\d+)\.xml$/.exec(sheetPath);
+    const sheetNum = sheetNumMatch ? sheetNumMatch[1] : '1';
+    let anchorsXml = '', relsXml = '';
+    const exts = new Set();
+
+    images.forEach((img,i)=>{
+      const n = i+1;
+      const match = /^data:image\/(png|jpe?g);base64,(.*)$/i.exec(img.dataUrl||'');
+      if(!match) return;
+      let ext = match[1].toLowerCase()==='jpg' ? 'jpeg' : match[1].toLowerCase();
+      const bin = atob(match[2]);
+      const bytes = new Uint8Array(bin.length);
+      for(let k=0;k<bin.length;k++) bytes[k] = bin.charCodeAt(k);
+      const fileExt = ext==='jpeg' ? 'jpg' : 'png';
+      const mediaName = `firma_${sheetNum}_${n}.${fileExt}`;
+      zip.file(`xl/media/${mediaName}`, bytes);
+      exts.add(fileExt);
+      const cx = Math.round((img.widthPx||150) * 9525);
+      const cy = Math.round((img.heightPx||70) * 9525);
+      anchorsXml += `<xdr:oneCellAnchor><xdr:from><xdr:col>${img.col}</xdr:col><xdr:colOff>19050</xdr:colOff><xdr:row>${img.row}</xdr:row><xdr:rowOff>19050</xdr:rowOff></xdr:from><xdr:ext cx="${cx}" cy="${cy}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${n+1}" name="Firma${n}"/><xdr:cNvPicPr/></xdr:nvPicPr><xdr:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="rId${n}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`;
+      relsXml += `<Relationship Id="rId${n}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/${mediaName}"/>`;
+    });
+    if(!anchorsXml) return;
+
+    zip.file(`xl/drawings/drawing${sheetNum}.xml`,
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">${anchorsXml}</xdr:wsDr>`);
+    zip.file(`xl/drawings/_rels/drawing${sheetNum}.xml.rels`,
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${relsXml}</Relationships>`);
+
+    let sheetXml = await zip.file(sheetPath).async('string');
+    if(!/<drawing /.test(sheetXml)){
+      sheetXml = sheetXml.replace('</worksheet>', `<drawing xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rIdDrawing1"/></worksheet>`);
+      zip.file(sheetPath, sheetXml);
+    }
+    zip.file(`xl/worksheets/_rels/sheet${sheetNum}.xml.rels`,
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdDrawing1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing${sheetNum}.xml"/></Relationships>`);
+
+    let ctXml = await zip.file('[Content_Types].xml').async('string');
+    let changed = false;
+    exts.forEach(ext=>{
+      const ct = ext==='jpg' ? 'image/jpeg' : 'image/png';
+      if(!new RegExp(`Extension="${ext}"`).test(ctXml)){ ctXml = ctXml.replace('</Types>', `<Default Extension="${ext}" ContentType="${ct}"/></Types>`); changed = true; }
+    });
+    if(!new RegExp('drawing'+sheetNum+'\\.xml').test(ctXml)){
+      ctXml = ctXml.replace('</Types>', `<Override PartName="/xl/drawings/drawing${sheetNum}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/></Types>`);
+      changed = true;
+    }
+    if(changed) zip.file('[Content_Types].xml', ctXml);
+  }catch(e){
+    console.error('No se pudo incrustar la firma, se entrega el Excel sin esa imagen:', e);
+  }
+}
+
+async function assembleXlsx(sheetPath, newSheetXml, images){
+  const zip = await JSZip.loadAsync(TEMPLATE_B64, {base64:true});
+  zip.file(sheetPath, newSheetXml);
+  if(images && images.length){
+    await embedImagesInZip(zip, sheetPath, images);
+  }
+  return await zip.generateAsync({type:'blob', mimeType:XLSX_MIME});
+}
+
+async function generateProcesoXlsx(data){
+  const sheetPath = 'xl/worksheets/sheet2.xml';
+  const zip0 = await JSZip.loadAsync(TEMPLATE_B64, {base64:true});
+  const templateXml = await zip0.file(sheetPath).async('string');
+  const {xml, images} = buildProcesoSheetXml(templateXml, data);
+  return await assembleXlsx(sheetPath, xml, images);
+}
+async function generateCorteXlsx(data){
+  const sheetPath = 'xl/worksheets/sheet1.xml';
+  const zip0 = await JSZip.loadAsync(TEMPLATE_B64, {base64:true});
+  const templateXml = await zip0.file(sheetPath).async('string');
+  const {xml, images} = buildCorteSheetXml(templateXml, data);
+  return await assembleXlsx(sheetPath, xml, images);
+}
+
+/* Solo para la vista previa en pantalla: lee el archivo final ya generado (lectura, no escritura,
+   que es lo que SheetJS sí hace bien) para mostrar la tabla. Si no está disponible, no pasa nada. */
+async function blobToPreviewSheet(blob, sheetName){
+  if(typeof XLSX === 'undefined') return null;
+  try{
+    const buf = await blob.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array', cellStyles:true});
+    return wb.Sheets[sheetName];
+  }catch(e){ console.error('No se pudo generar la vista previa:', e); return null; }
+}
+
+/* ============== MODAL DE EXPORTACIÓN ============== */
+let modalBlob = null, modalFileName = 'formato.xlsx';
+
+async function handleExport(){
+  if(!(await ensureJSZip())) return;
+  try{
+    let blob, title, fileName, sheetName;
+    if(activeTab==='corte'){
+      blob = await generateCorteXlsx(corte);
+      title = 'Informe General de Corte Diario';
+      fileName = `corte-diario_${corte.fecha||'sinfecha'}.xlsx`;
+      sheetName = 'Corte Diario';
+    } else {
+      blob = await generateProcesoXlsx(proc());
+      title = `${procesoTipo} — hora a hora`;
+      fileName = `${procesoTipo.toLowerCase()}_${proc().fecha||'sinfecha'}.xlsx`;
+      sheetName = 'Control Proceso Fruta (2)';
+    }
+    const ws = await blobToPreviewSheet(blob, sheetName);
+    openModalWithFile(blob, fileName, title, ws);
+  }catch(e){
+    console.error(e);
+    alert('No se pudo generar el Excel: '+e.message);
+  }
+}
+
+async function exportHist(key){
+  if(!(await ensureJSZip())) return;
+  const it = findHist(key); if(!it) return;
+  const d = it.data;
+  try{
+    let blob, fileName, title, sheetName;
+    if(key.includes('report:corte')){
+      blob = await generateCorteXlsx(d);
+      fileName = `corte-diario_${d.fecha||'sinfecha'}.xlsx`;
+      title = 'Informe General de Corte Diario';
+      sheetName = 'Corte Diario';
+    } else {
+      blob = await generateProcesoXlsx(d);
+      fileName = `${(d.tipo||'proceso').toLowerCase()}_${d.fecha||'sinfecha'}.xlsx`;
+      title = `${d.tipo||'Proceso'} — hora a hora`;
+      sheetName = 'Control Proceso Fruta (2)';
+    }
+    const ws = await blobToPreviewSheet(blob, sheetName);
+    openModalWithFile(blob, fileName, title, ws);
+  }catch(e){
+    console.error(e);
+    alert('No se pudo generar el Excel: '+e.message);
+  }
+}
+
+/* Convierte la hoja (con sus celdas combinadas y colores reales) a una tabla HTML,
+   para que se vean los datos llenos exactamente como quedarán en el Excel. */
+function wsToHtmlTable(ws){
+  if(!ws['!ref']) return '<div class="empty">Sin datos para mostrar.</div>';
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  const merges = ws['!merges']||[];
+  const skip = new Set();
+  const spanAt = {};
+  merges.forEach(m=>{
+    spanAt[`${m.s.r},${m.s.c}`] = {rowspan:m.e.r-m.s.r+1, colspan:m.e.c-m.s.c+1};
+    for(let r=m.s.r;r<=m.e.r;r++) for(let c=m.s.c;c<=m.e.c;c++){
+      if(r===m.s.r && c===m.s.c) continue;
+      skip.add(`${r},${c}`);
+    }
+  });
+  let html = '<table style="border-collapse:collapse;width:max-content;min-width:100%;font-family:Arial,Helvetica,sans-serif;font-size:11.5px;background:#fff;">';
+  for(let r=range.s.r;r<=range.e.r;r++){
+    html += '<tr>';
+    for(let c=range.s.c;c<=range.e.c;c++){
+      const key = `${r},${c}`;
+      if(skip.has(key)) continue;
+      const addr = XLSX.utils.encode_cell({r,c});
+      const cell = ws[addr];
+      const raw = cell && cell.v!==undefined ? cell.v : '';
+      const span = spanAt[key];
+      const s = cell && cell.s || {};
+      const hasFill = s.fill && s.fill.fgColor && s.fill.fgColor.rgb;
+      const bg = hasFill ? ('#'+s.fill.fgColor.rgb) : '#ffffff';
+      const bold = s.font && s.font.bold;
+      const fcolor = (s.font && s.font.color && s.font.color.rgb) ? ('#'+s.font.color.rgb) : '#20291d';
+      const filled = raw!=='' && raw!==null && raw!==undefined;
+      const finalBg = filled && !hasFill ? '#fff8e0' : bg;
+      html += `<td ${span?`rowspan="${span.rowspan}" colspan="${span.colspan}"`:''} style="border:1px solid #cbbf9a;padding:4px 7px;background:${finalBg};font-weight:${bold?'700':'400'};color:${fcolor};white-space:nowrap;">${filled? String(raw).replace(/</g,'&lt;') : '&nbsp;'}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+  return html;
+}
+
+function openModalWithFile(blob, fileName, title, ws){
+  modalBlob = blob; modalFileName = fileName;
+  document.getElementById('modalTitle').textContent = title;
+  const tableHtml = ws ? wsToHtmlTable(ws) : '';
+  document.getElementById('modalBody').innerHTML = `
+    <div style="font-size:11.5px;color:#8a7a4a;padding:2px 2px 10px;">
+      Así se ve tu Excel ya llenado. Desliza para ver todo. Archivo: <b>${fileName}</b>
+    </div>
+    <div style="overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid #cbbf9a;border-radius:6px;">
+      ${tableHtml}
+    </div>
+    <div id="modalNote" style="font-size:11.5px;color:#8a7a4a;padding-top:10px;"></div>`;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
+function modalNote(msg){ const n=document.getElementById('modalNote'); if(n) n.textContent = msg; }
+
+function downloadModalFile(){
+  if(!modalBlob) return;
+  const url = URL.createObjectURL(modalBlob);
+  const a = document.createElement('a');
+  a.href = url; a.download = modalFileName;
+  document.body.appendChild(a); a.click(); a.remove();
+  modalNote('✅ Descargado. Lo encuentras en tus Descargas o Archivos del celular.');
+  setTimeout(()=> URL.revokeObjectURL(url), 4000);
+}
+</script>
+</body>
+</html>
